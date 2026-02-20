@@ -105,8 +105,7 @@ The application follows clean architecture principles and includes secure authen
 ### 1️⃣ Clone Repository
 
 ```bash
-git clone https://github.com/your-username/booknest.git
-cd booknest
+git clone https://github.com/PrinceMoses-tech/bookNest.git
 ```
 
 ---
@@ -129,7 +128,7 @@ JWT_SECRET=your_secret_key
 Run backend:
 
 ```bash
-npm start
+npm run backend
 ```
 
 ---
@@ -150,7 +149,7 @@ VITE_API_URL=http://localhost:5000/api
 Run frontend:
 
 ```bash
-npm run dev
+npm run frontend
 ```
 
 ---
