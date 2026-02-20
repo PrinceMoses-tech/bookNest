@@ -1,9 +1,3 @@
-Perfect Moses 🔥
-Here is a **clean, professional, submission-ready README** for your **BookNest** project.
-You can copy this directly into `README.md` and push to GitHub.
-
----
-
 # 📚 BookNest – Full Stack MERN Book Store Application
 
 > A production-ready full-stack e-commerce web application built using the MERN stack.
@@ -12,8 +6,8 @@ You can copy this directly into `README.md` and push to GitHub.
 
 ## 🚀 Live Demo
 
-🌐 Frontend: `https://your-frontend-url.com`
-🔗 Backend API: `https://your-backend-url.com`
+🌐 Frontend: `https://book-nest-black.vercel.app/`
+🔗 Backend API: `https://booknest-czhb.onrender.com/`
 
 ---
 
@@ -53,36 +47,9 @@ The application follows clean architecture principles and includes secure authen
 
 ### Deployment
 
-* Frontend: Vercel / Render
+* Frontend: Vercel
 * Backend: Render
 * Database: MongoDB Atlas
-
----
-
-## 📂 Project Structure
-
-```
-BookNest/
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── context/
-│   │   ├── utils/
-│   │   └── App.jsx
-│   └── package.json
-│
-├── backend/
-│   ├── models/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── routes/
-│   ├── server.js
-│   └── package.json
-│
-└── README.md
-```
 
 ---
 
@@ -256,16 +223,4 @@ Full Stack MERN Developer
 
 ## 📌 License
 
-This project is developed for academic and learning purposes.
-
----
-
-If you want, I can also create:
-
-* ⭐ Ultra-modern GitHub README with badges & shields
-* 📊 Architecture diagram
-* 📸 Screenshot section layout
-* 🎥 Demo section
-* 🧾 College-format report version
-
-Tell me your submission format and I’ll make it perfect 💪🔥
+This project is developed for internship and learning purposes.
