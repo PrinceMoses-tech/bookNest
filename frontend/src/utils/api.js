@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://booknest-czhb.onrender.com';
 
 const buildHeaders = (token) => {
   const headers = { 'Content-Type': 'application/json' };
