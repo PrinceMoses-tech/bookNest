@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { getCartItemCount } = useCart();
+  const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const cartItemCount = getCartItemCount();
 
   const isActive = (path) => location.pathname === path;
@@ -13,14 +16,18 @@ const Navbar = () => {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/browse', label: 'Browse Books' },
-    { path: '/orders', label: 'Orders' },
-    { path: '/profile', label: 'Profile' },
   ];
+
+  const handleLogout = () => {
+    logout();
+    setIsMenuOpen(false);
+    navigate('/');
+  };
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
+        <Link to="/" className="navbar-logo" onClick={() => setIsMenuOpen(false)}>
           BookEase
         </Link>
 
@@ -48,6 +55,30 @@ const Navbar = () => {
               </Link>
             </li>
           ))}
+
+          {isAuthenticated && (
+            <>
+              <li>
+                <Link
+                  to="/orders"
+                  className={isActive('/orders') ? 'active' : ''}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Orders
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/profile"
+                  className={isActive('/profile') ? 'active' : ''}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+              </li>
+            </>
+          )}
+
           <li>
             <Link
               to="/cart"
@@ -72,6 +103,35 @@ const Navbar = () => {
               )}
             </Link>
           </li>
+
+          {!isAuthenticated ? (
+            <>
+              <li>
+                <Link
+                  to="/login"
+                  className={isActive('/login') ? 'active' : ''}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/signup"
+                  className={isActive('/signup') ? 'active' : ''}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </li>
+            </>
+          ) : (
+            <li>
+              <button className="btn btn-secondary btn-small" onClick={handleLogout}>
+                {user?.name ? `Logout (${user.name})` : 'Logout'}
+              </button>
+            </li>
+          )}
         </ul>
       </div>
     </nav>

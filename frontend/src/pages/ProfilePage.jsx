@@ -1,44 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 
 const ProfilePage = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    address: '',
-  });
+  const { user, logout, token } = useAuth();
   const [orders, setOrders] = useState([]);
-  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    const savedProfile = JSON.parse(
-      localStorage.getItem('bookease-profile') || '{}'
-    );
-    setFormData({
-      name: savedProfile.name || '',
-      email: savedProfile.email || '',
-      address: savedProfile.address || '',
-    });
+    const fetchOrders = async () => {
+      try {
+        const res = await api.get(`/orders?userId=${user.id}`, token);
+        setOrders(res.data.slice(0, 5));
+      } catch {
+        setOrders([]);
+      }
+    };
 
-    const savedOrders = JSON.parse(
-      localStorage.getItem('bookease-orders') || '[]'
-    );
-    setOrders(savedOrders.slice(0, 5).reverse());
-  }, []);
+    if (user && token) {
+      fetchOrders();
+    }
+  }, [user, token]);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    setIsSaved(false);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    localStorage.setItem('bookease-profile', JSON.stringify(formData));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
-  };
+  if (!user) return null;
 
   return (
     <div className="profile-page">
@@ -47,51 +30,24 @@ const ProfilePage = () => {
 
         <div className="profile-content">
           <div className="profile-section">
-            <h2>Personal Information</h2>
-            <form onSubmit={handleSubmit} className="profile-form">
-              <div className="form-group">
-                <label htmlFor="name">Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your name"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="address">Address</label>
-                <textarea
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Enter your address"
-                  rows="4"
-                  required
-                />
-              </div>
-
-              <button type="submit" className="btn btn-primary">
-                {isSaved ? '✓ Saved!' : 'Save Changes'}
-              </button>
-            </form>
+            <h2>Account</h2>
+            <p>
+              <strong>Name:</strong> {user.name}
+            </p>
+            <p>
+              <strong>Email:</strong> {user.email}
+            </p>
+            <p>
+              <strong>Role:</strong> {user.role}
+            </p>
+            {user.address && (
+              <p>
+                <strong>Address:</strong> {user.address}
+              </p>
+            )}
+            <button className="btn btn-secondary" onClick={logout}>
+              Logout
+            </button>
           </div>
 
           <div className="profile-section">
@@ -103,11 +59,11 @@ const ProfilePage = () => {
             ) : (
               <div className="order-history">
                 {orders.map((order) => (
-                  <div key={order.id} className="order-history-item">
+                  <div key={order.id || order._id} className="order-history-item">
                     <div>
-                      <h4>{order.id}</h4>
+                      <h4>{order.orderId || order.id}</h4>
                       <p className="order-history-date">
-                        {new Date(order.date).toLocaleDateString()}
+                        {new Date(order.date || order.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="order-history-total">
