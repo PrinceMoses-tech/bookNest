@@ -1,4 +1,11 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://booknest-czhb.onrender.com/api';
+// Normalize API base so requests always hit Express routes mounted under `/api`.
+// If VITE_API_URL is set to `http://localhost:5000` (missing `/api`), we still append it.
+const rawApiBaseUrl =
+  import.meta.env.VITE_API_URL || 'https://booknest-czhb.onrender.com/api';
+const trimmedApiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '');
+const API_BASE_URL = trimmedApiBaseUrl.endsWith('/api')
+  ? trimmedApiBaseUrl
+  : `${trimmedApiBaseUrl}/api`;
 
 const buildHeaders = (token) => {
   const headers = { 'Content-Type': 'application/json' };
