@@ -1,7 +1,6 @@
-// Normalize API base so requests always hit Express routes mounted under `/api`.
-// If VITE_API_URL is set to `http://localhost:5000` (missing `/api`), we still append it.
-const rawApiBaseUrl =
-  import.meta.env.VITE_API_URL || 'https://booknest-czhb.onrender.com/api';
+// Use relative URL so the Vite proxy routes /api to the backend.
+// Falls back to VITE_API_URL for production builds.
+const rawApiBaseUrl = import.meta.env.VITE_API_URL || '/api';
 const trimmedApiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '');
 const API_BASE_URL = trimmedApiBaseUrl.endsWith('/api')
   ? trimmedApiBaseUrl

@@ -12,7 +12,7 @@ import authRoutes from './routes/authRoutes.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
 dotenv.config();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 const app = express();
 
