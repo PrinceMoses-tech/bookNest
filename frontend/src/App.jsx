@@ -11,7 +11,9 @@ import ProfilePage from './pages/ProfilePage';
 import OrderConfirmation from './pages/OrderConfirmation';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -50,6 +52,14 @@ function App() {
               <Route path="/confirmation" element={<OrderConfirmation />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+                }
+              />
             </Routes>
           </Layout>
         </CartProvider>

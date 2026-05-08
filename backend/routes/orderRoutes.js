@@ -6,13 +6,13 @@ import {
   getOrderByOrderId,
   updateOrderStatus,
 } from '../controllers/orderController.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.route('/').post(createOrder).get(getOrders);
-router.route('/orderId/:orderId').get(getOrderByOrderId);
-router.route('/:id').get(getOrderById);
-router.route('/:id/status').put(updateOrderStatus);
+router.route('/').post(protect, createOrder).get(protect, adminOnly, getOrders);
+router.route('/orderId/:orderId').get(protect, getOrderByOrderId);
+router.route('/:id').get(protect, getOrderById);
+router.route('/:id/status').put(protect, adminOnly, updateOrderStatus);
 
 export default router;
-

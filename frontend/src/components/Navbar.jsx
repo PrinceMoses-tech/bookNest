@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { getCartItemCount } = useCart();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const cartItemCount = getCartItemCount();
@@ -76,6 +76,17 @@ const Navbar = () => {
                   Profile
                 </Link>
               </li>
+              {isAdmin && (
+                <li>
+                  <Link
+                    to="/admin"
+                    className={`admin-nav-link ${isActive('/admin') ? 'active' : ''}`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin
+                  </Link>
+                </li>
+              )}
             </>
           )}
 
