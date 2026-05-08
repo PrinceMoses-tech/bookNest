@@ -4,6 +4,9 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 
+// Guard: returns a clean 503 if MongoDB dropped between the middleware check
+// and the actual query. Because bufferCommands is false, this is defensive —
+// the query itself would also throw immediately if disconnected.
 const ensureDatabaseConnected = () => {
   if (mongoose.connection.readyState !== 1) {
     const error = new Error('Database unavailable. Please try again shortly.');
@@ -12,11 +15,12 @@ const ensureDatabaseConnected = () => {
   }
 };
 
-// @desc    Register user
+// ── Register ───────────────────────────────────────────────────────────────────
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = asyncHandler(async (req, res) => {
   ensureDatabaseConnected();
+
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -24,20 +28,27 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Please provide name, email and password');
   }
 
-  const existing = await User.findOne({ email });
+  if (password.length < 6) {
+    res.status(400);
+    throw new Error('Password must be at least 6 characters');
+  }
+
+  const existing = await User.findOne({ email: email.toLowerCase().trim() });
   if (existing) {
     res.status(400);
-    throw new Error('User with this email already exists');
+    throw new Error('An account with this email already exists');
   }
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
   const user = await User.create({
-    name,
-    email,
+    name: name.trim(),
+    email: email.toLowerCase().trim(),
     password: hashedPassword,
   });
+
+  console.log(`[Auth] ✅ New user registered: ${user.email} (${user._id})`);
 
   const token = generateToken(user);
 
@@ -54,11 +65,12 @@ export const registerUser = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Login user
+// ── Login ──────────────────────────────────────────────────────────────────────
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = asyncHandler(async (req, res) => {
   ensureDatabaseConnected();
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -66,7 +78,10 @@ export const loginUser = asyncHandler(async (req, res) => {
     throw new Error('Please provide email and password');
   }
 
-  const user = await User.findOne({ email }).select('+password');
+  // .select('+password') is needed because password has select:false in the schema
+  const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+    '+password'
+  );
 
   if (!user) {
     res.status(401);
@@ -74,11 +89,12 @@ export const loginUser = asyncHandler(async (req, res) => {
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
-
   if (!isMatch) {
     res.status(401);
     throw new Error('Invalid email or password');
   }
+
+  console.log(`[Auth] ✅ User logged in: ${user.email} (${user._id})`);
 
   const token = generateToken(user);
 
@@ -95,11 +111,12 @@ export const loginUser = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get logged-in user profile
+// ── Get Profile ────────────────────────────────────────────────────────────────
 // @route   GET /api/auth/profile
 // @access  Private
 export const getProfile = asyncHandler(async (req, res) => {
   ensureDatabaseConnected();
+
   const user = await User.findById(req.user.userId);
 
   if (!user) {
@@ -118,5 +135,3 @@ export const getProfile = asyncHandler(async (req, res) => {
     },
   });
 });
-
-
