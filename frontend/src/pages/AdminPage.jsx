@@ -1,78 +1,76 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { FiUsers, FiPackage, FiDollarSign, FiLoader, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
-const TABS = ['overview', 'users', 'orders'];
+const TABS   = ['overview', 'users', 'orders'];
+const STATUS_OPTIONS = ['Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
-const StatusBadge = ({ status }) => {
-  const map = {
-    Processing: 'status-processing',
-    Shipped: 'status-shipped',
-    Delivered: 'status-delivered',
-    Cancelled: 'status-cancelled',
-  };
-  return (
-    <span className={`order-status ${map[status] || 'status-processing'}`}>
-      {status}
-    </span>
-  );
+const STATUS_COLORS = {
+  Processing: 'bg-amber-100  dark:bg-amber-950/40  text-amber-700  dark:text-amber-400',
+  Shipped:    'bg-sky-100    dark:bg-sky-950/40    text-sky-700    dark:text-sky-400',
+  Delivered:  'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400',
+  Cancelled:  'bg-red-100    dark:bg-red-950/40    text-red-700    dark:text-red-400',
 };
 
-const AdminPage = () => {
-  const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [users, setUsers] = useState([]);
+const cardBg = 'bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/60 shadow-sm';
+
+export default function AdminPage() {
+  const { token }       = useAuth();
+  const [tab, setTab]   = useState('overview');
+  const [users, setUsers]   = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [updatingOrder, setUpdatingOrder] = useState(null);
+  const [error, setError]     = useState('');
+  const [updating, setUpdating] = useState({});
 
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     setLoading(true);
-    setError(null);
+    setError('');
     try {
-      const [usersRes, ordersRes] = await Promise.all([
-        api.get('/users', token),
+      const [uRes, oRes] = await Promise.all([
+        api.get('/users',  token),
         api.get('/orders', token),
       ]);
-      setUsers(usersRes.data || []);
-      setOrders(ordersRes.data || []);
-    } catch (err) {
-      setError(err.message || 'Failed to load admin data');
+      setUsers(uRes.data);
+      setOrders(oRes.data);
+    } catch (e) {
+      setError(e.message || 'Failed to load admin data.');
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  };
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [token]);
 
-  const handleStatusChange = async (orderId, newStatus) => {
-    setUpdatingOrder(orderId);
+  const updateStatus = async (orderId, status) => {
+    setUpdating(u => ({ ...u, [orderId]: true }));
     try {
-      await api.put(`/orders/${orderId}/status`, { status: newStatus }, token);
-      setOrders((prev) =>
-        prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
-      );
-    } catch (err) {
-      alert('Failed to update order status: ' + err.message);
+      await api.put(`/orders/${orderId}/status`, { status }, token);
+      setOrders(prev => prev.map(o => (o._id === orderId ? { ...o, status } : o)));
+      toast.success(`Status updated to ${status}`);
+    } catch {
+      toast.error('Failed to update status');
     } finally {
-      setUpdatingOrder(null);
+      setUpdating(u => ({ ...u, [orderId]: false }));
     }
   };
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const statusCounts = orders.reduce((acc, o) => {
-    acc[o.status] = (acc[o.status] || 0) + 1;
-    return acc;
-  }, {});
+  const stats = {
+    users:      users.length,
+    orders:     orders.length,
+    revenue:    orders.reduce((s, o) => s + (o.total || 0), 0),
+    processing: orders.filter(o => o.status === 'Processing').length,
+  };
 
   if (loading) {
     return (
-      <div className="admin-page">
-        <div className="container">
-          <div className="admin-loading">Loading dashboard data...</div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <FiLoader className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-3" size={32} />
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Loading admin data…</p>
         </div>
       </div>
     );
@@ -80,274 +78,214 @@ const AdminPage = () => {
 
   if (error) {
     return (
-      <div className="admin-page">
-        <div className="container">
-          <div className="admin-error">
-            <p>{error}</p>
-            <button className="btn btn-primary btn-small" onClick={fetchData}>
-              Retry
-            </button>
-          </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-6">
+        <div className={`${cardBg} p-8 max-w-md w-full text-center`}>
+          <FiAlertCircle className="text-red-500 mx-auto mb-3" size={36} />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Error loading data</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{error}</p>
+          <button onClick={fetchData} className="flex items-center gap-2 mx-auto px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+            <FiRefreshCw size={14} /> Retry
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="admin-page">
-      <div className="container">
-        <div className="admin-header">
-          <div>
-            <h1 className="admin-title">Admin Dashboard</h1>
-            <p className="admin-subtitle">Manage your BookNest store</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-600 to-violet-600">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">Admin Dashboard</h1>
+              <p className="text-indigo-200 text-sm mt-1">Manage users, orders, and platform data</p>
+            </div>
+            <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 bg-white/15 text-white text-sm font-medium rounded-xl border border-white/20 hover:bg-white/25 transition-colors">
+              <FiRefreshCw size={14} /> Refresh
+            </button>
           </div>
-          <button className="btn btn-secondary btn-small" onClick={fetchData}>
-            Refresh
-          </button>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { icon: FiUsers,      label: 'Total Users',   value: stats.users,                    color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40'  },
+            { icon: FiPackage,    label: 'Total Orders',  value: stats.orders,                   color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40'  },
+            { icon: FiDollarSign, label: 'Revenue',       value: `$${stats.revenue.toFixed(2)}`, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+            { icon: FiLoader,     label: 'Processing',    value: stats.processing,               color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-50 dark:bg-amber-950/40'    },
+          ].map(({ icon: Icon, label, value, color, bg }) => (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              className={`${cardBg} p-5 flex items-center gap-4`}
+            >
+              <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                <Icon size={20} className={color} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wide">{label}</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">{value}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        <div className="admin-tabs">
-          {TABS.map((tab) => (
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-slate-800">
+          {TABS.map(t => (
             <button
-              key={tab}
-              className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-5 py-2.5 text-sm font-medium capitalize transition-all border-b-2 -mb-px ${
+                tab === t
+                  ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {t}
             </button>
           ))}
         </div>
 
-        {activeTab === 'overview' && (
-          <div className="admin-overview">
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-icon stat-icon-users">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <div className="stat-body">
-                  <p className="stat-label">Total Users</p>
-                  <p className="stat-value">{users.length}</p>
-                </div>
+        {/* Overview */}
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={cardBg}>
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Recent Orders</h3>
               </div>
-
-              <div className="stat-card">
-                <div className="stat-icon stat-icon-orders">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
-                </div>
-                <div className="stat-body">
-                  <p className="stat-label">Total Orders</p>
-                  <p className="stat-value">{orders.length}</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon stat-icon-revenue">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
-                </div>
-                <div className="stat-body">
-                  <p className="stat-label">Total Revenue</p>
-                  <p className="stat-value">${totalRevenue.toFixed(2)}</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon stat-icon-processing">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                </div>
-                <div className="stat-body">
-                  <p className="stat-label">Processing</p>
-                  <p className="stat-value">{statusCounts.Processing || 0}</p>
-                </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {orders.slice(0, 5).map(o => (
+                  <div key={o._id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-mono text-slate-500 truncate">{o._id}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{new Date(o.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[o.status] || STATUS_COLORS.Processing}`}>{o.status || 'Processing'}</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-slate-100">${Number(o.total).toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+                {orders.length === 0 && <p className="px-5 py-6 text-sm text-slate-400 text-center">No orders yet</p>}
               </div>
             </div>
-
-            <div className="overview-tables">
-              <div className="overview-section">
-                <h2 className="overview-section-title">Recent Orders</h2>
-                {orders.length === 0 ? (
-                  <p className="admin-empty">No orders yet.</p>
-                ) : (
-                  <div className="admin-table-wrap">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>Order ID</th>
-                          <th>User</th>
-                          <th>Total</th>
-                          <th>Status</th>
-                          <th>Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.slice(0, 5).map((order) => (
-                          <tr key={order._id}>
-                            <td className="order-id-cell">{order.orderId || order._id}</td>
-                            <td>{order.userId || '—'}</td>
-                            <td>${(order.total || 0).toFixed(2)}</td>
-                            <td><StatusBadge status={order.status} /></td>
-                            <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+            <div className={cardBg}>
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Recent Users</h3>
               </div>
-
-              <div className="overview-section">
-                <h2 className="overview-section-title">Recent Users</h2>
-                {users.length === 0 ? (
-                  <p className="admin-empty">No users yet.</p>
-                ) : (
-                  <div className="admin-table-wrap">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Email</th>
-                          <th>Role</th>
-                          <th>Joined</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.slice(0, 5).map((user) => (
-                          <tr key={user._id}>
-                            <td>{user.name}</td>
-                            <td>{user.email}</td>
-                            <td>
-                              <span className={`role-badge role-${user.role}`}>
-                                {user.role}
-                              </span>
-                            </td>
-                            <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {users.slice(0, 5).map(u => (
+                  <div key={u._id} className="px-5 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {u.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{u.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                      {u.role || 'user'}
+                    </span>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {activeTab === 'users' && (
-          <div className="admin-section">
-            <div className="section-meta">
-              <h2>{users.length} registered user{users.length !== 1 ? 's' : ''}</h2>
+        {/* Users tab */}
+        {tab === 'users' && (
+          <div className={cardBg}>
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{users.length} Users</h3>
             </div>
-            {users.length === 0 ? (
-              <p className="admin-empty">No users found.</p>
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Address</th>
-                      <th>Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user, i) => (
-                      <tr key={user._id}>
-                        <td className="row-num">{i + 1}</td>
-                        <td>{user.name}</td>
-                        <td>{user.email}</td>
-                        <td>
-                          <span className={`role-badge role-${user.role}`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td>{user.address || <span className="muted">—</span>}</td>
-                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                      </tr>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/30">
+                    {['#','Name','Email','Role','Address','Joined'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {users.map((u, i) => (
+                    <tr key={u._id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                            {u.name?.charAt(0)?.toUpperCase()}
+                          </div>
+                          <span className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{u.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{u.email}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${u.role === 'admin' ? 'bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                          {u.role || 'user'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-[160px] truncate">{u.address || '—'}</td>
+                      <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
+                        {new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {activeTab === 'orders' && (
-          <div className="admin-section">
-            <div className="section-meta">
-              <h2>{orders.length} order{orders.length !== 1 ? 's' : ''}</h2>
+        {/* Orders tab */}
+        {tab === 'orders' && (
+          <div className={cardBg}>
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{orders.length} Orders</h3>
             </div>
-            {orders.length === 0 ? (
-              <p className="admin-empty">No orders found.</p>
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Order ID</th>
-                      <th>User</th>
-                      <th>Items</th>
-                      <th>Total</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                      <th>Update Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order, i) => (
-                      <tr key={order._id}>
-                        <td className="row-num">{i + 1}</td>
-                        <td className="order-id-cell">{order.orderId || order._id}</td>
-                        <td>{order.userId || '—'}</td>
-                        <td>{order.items?.length || 0}</td>
-                        <td>${(order.total || 0).toFixed(2)}</td>
-                        <td><StatusBadge status={order.status} /></td>
-                        <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-                        <td>
-                          <select
-                            className="status-select"
-                            value={order.status}
-                            disabled={updatingOrder === order._id}
-                            onChange={(e) =>
-                              handleStatusChange(order._id, e.target.value)
-                            }
-                          >
-                            <option>Processing</option>
-                            <option>Shipped</option>
-                            <option>Delivered</option>
-                            <option>Cancelled</option>
-                          </select>
-                        </td>
-                      </tr>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/30">
+                    {['#','Order ID','Customer','Items','Total','Status','Date'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {orders.map((o, i) => (
+                    <tr key={o._id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-500 max-w-[140px] truncate">{o._id}</td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">{o.user?.name || '—'}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-center">{o.items?.length ?? 0}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">${Number(o.total).toFixed(2)}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={o.status || 'Processing'}
+                          disabled={updating[o._id]}
+                          onChange={e => updateStatus(o._id, e.target.value)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer ${STATUS_COLORS[o.status] || STATUS_COLORS.Processing} ${updating[o._id] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
+                        {new Date(o.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-export default AdminPage;
+}
