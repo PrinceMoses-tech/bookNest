@@ -4,7 +4,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "backend": "nodemon backend/index.js",
+    "backend": "cross-env PORT=3000 nodemon backend/index.js",
     "frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
     "seed": "node backend/scripts/seedBooks.js"
@@ -29,5 +29,8 @@
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.6.0",
     "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
   }
 }
