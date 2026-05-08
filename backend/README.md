@@ -57,13 +57,13 @@ Create a `.env` file in the `backend` directory:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/bookease
+MONGO_URI=mongodb://localhost:27017/bookease
 NODE_ENV=development
 ```
 
 **For MongoDB Atlas (Cloud):**
 ```env
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bookease?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/bookease?retryWrites=true&w=majority
 ```
 
 ### 3. Start MongoDB

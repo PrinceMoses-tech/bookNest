@@ -2,23 +2,41 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-import createDB from './config/db.js';
+import path from 'path';
+import mongoose from 'mongoose';
+import connectDB, { isDatabaseReady } from './config/db.js';
 import bookRoutes from './routes/bookRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
 dotenv.config();
 const port = process.env.PORT || 5000;
 
 const app = express();
-createDB();
 
 // Middleware
-app.use(cors({ origin: '*' }));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || '*',
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Return fast when database is unavailable instead of buffering queries.
+app.use('/api', (req, res, next) => {
+  if (isDatabaseReady()) {
+    return next();
+  }
+
+  return res.status(503).json({
+    success: false,
+    message: 'Database unavailable. Please try again shortly.',
+  });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -41,7 +59,7 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  const statusCode = err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
   res.status(statusCode).json({
     success: false,
     message: err.message,
@@ -57,7 +75,29 @@ app.use((req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`📚 BookNext API: http://localhost:${port}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    mongoose.connection.on('error', (error) => {
+      console.error(`MongoDB Connection Failed: ${error.message}`);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.error('MongoDB disconnected');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('MongoDB reconnected');
+    });
+
+    app.listen(port, () => {
+      console.log(`Server Running on port ${port}`);
+    });
+  } catch (error) {
+    console.error(`MongoDB Connection Failed: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+startServer();

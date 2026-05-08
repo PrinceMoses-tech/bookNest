@@ -1,12 +1,22 @@
 import bcrypt from 'bcryptjs';
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
+
+const ensureDatabaseConnected = () => {
+  if (mongoose.connection.readyState !== 1) {
+    const error = new Error('Database unavailable. Please try again shortly.');
+    error.statusCode = 503;
+    throw error;
+  }
+};
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = asyncHandler(async (req, res) => {
+  ensureDatabaseConnected();
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -48,6 +58,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = asyncHandler(async (req, res) => {
+  ensureDatabaseConnected();
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -88,6 +99,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/profile
 // @access  Private
 export const getProfile = asyncHandler(async (req, res) => {
+  ensureDatabaseConnected();
   const user = await User.findById(req.user.userId);
 
   if (!user) {
