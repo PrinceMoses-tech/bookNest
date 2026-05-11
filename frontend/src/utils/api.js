@@ -26,6 +26,7 @@ const api = {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'GET',
       headers: buildHeaders(token),
+      credentials: "include",
     });
     return handleResponse(res);
   },
@@ -34,6 +35,7 @@ const api = {
       method: 'POST',
       headers: buildHeaders(token),
       body: JSON.stringify(body),
+      credentials: "include",
     });
     return handleResponse(res);
   },
@@ -42,6 +44,7 @@ const api = {
       method: 'PUT',
       headers: buildHeaders(token),
       body: JSON.stringify(body),
+      credentials: "include",
     });
     return handleResponse(res);
   },
